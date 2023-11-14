@@ -15,7 +15,7 @@ import {
   GuildAdd,
   GuildMemberAdd,
   GuildMemberRemove,
-} from './BotEvent/index.js';
+} from './EventHandler/index.js';
 import { LoadConfig } from './Config/ConfigManager.js';
 import { Connect } from './Database/DBManager.js';
 import logger from './Utils/Logger.js';

@@ -3,3 +3,6 @@ config.json
 .env
 dist
 logs
+.yarn
+.vscode
+.vim

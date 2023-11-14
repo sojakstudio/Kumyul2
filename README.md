@@ -26,7 +26,7 @@
 <br/>
 <a href="https://github.com/msilot1001/Kumyul2/blob/master/LICENSE_KR.md">- 한글 전문</a> </h3>
 
-<h3>Copyright (C) 2022 SOJAK STUDIO</h3>
+<h3>Copyright (C) 2022-23 SOJAK STUDIO</h3>
 This program is free software: you can redistribute it and/or modify
 
 it under the terms of the GNU General Public License as published by

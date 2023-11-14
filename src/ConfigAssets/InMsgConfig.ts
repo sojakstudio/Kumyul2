@@ -20,7 +20,7 @@ import {
 import { inspect } from 'util';
 import ConfigPage from '../Interfaces/IConfigPage.js';
 import { InOutPage } from './index.js';
-import { client } from '../BotEvent/BotEvent.js';
+import { client } from '../EventHandler/MainHandler.js';
 import logger from '../Utils/Logger.js';
 import { color, url } from '../Config/EmbedConfig.js';
 import { GuildModel } from '../Database/GuildSchema.js';

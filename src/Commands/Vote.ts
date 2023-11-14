@@ -16,13 +16,12 @@ import {
   CollectedInteraction,
   ModalSubmitInteraction,
 } from 'discord.js';
-import { v4 } from 'uuid';
-import { inspect } from 'util';
+import { randomUUID } from 'crypto';
 import ICommand from '../Interfaces/ICommand.js';
 import logger from '../Utils/Logger.js';
 import { VoteModel } from '../Database/VoteSchema.js';
 import { url } from '../Config/EmbedConfig.js';
-import { client } from '../BotEvent/index.js';
+import { client } from '../EventHandler/index.js';
 
 const command: ICommand = {
   Builder: new SlashCommandBuilder()
@@ -34,8 +33,6 @@ const command: ICommand = {
   SlashExecute: async (interaction: CommandInteraction) => {
     if (!interaction.guild) return;
     if (!interaction.member) return;
-
-    logger.info(inspect(interaction.member?.permissions));
 
     if (
       !(interaction.member?.permissions as PermissionsBitField)
@@ -53,7 +50,7 @@ const command: ICommand = {
       return;
     }
 
-    const id = `${v4()}`;
+    const id = `${randomUUID()}`;
 
     // modal 생성
     const modal = new ModalBuilder()
@@ -133,8 +130,6 @@ const command: ICommand = {
           fetchReply: true,
         });
 
-        logger.info(msg.id);
-
         await VoteModel.create({
           id,
           topic,
@@ -145,6 +140,11 @@ const command: ICommand = {
           uservoted: new Map<string, boolean>(),
           maker: interaction.user.id,
           makername: `${interaction.user.username}#${interaction.user.discriminator}`,
+        });
+
+        interaction.reply({
+          content: '투표를 성공적으로 생성했어요!',
+          ephemeral: true,
         });
       }
     });

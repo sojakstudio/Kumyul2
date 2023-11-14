@@ -17,7 +17,9 @@
     "ecmaVersion": 11,
     "sourceType": "module"
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": [
+    "@typescript-eslint"
+  ],
   "rules": {
     "class-methods-use-this": 0,
     "linebreak-style": 0,
@@ -32,6 +34,7 @@
     "import/no-unresolved": 0,
     "prefer-destructuring": 0,
     "no-async-promise-executor": 1,
-    "no-useless-return": 1
+    "no-useless-return": 1,
+    "lines-between-class-members": 0
   }
 }

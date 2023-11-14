@@ -20,7 +20,7 @@ import { GuildModel } from '../Database/GuildSchema.js';
 import ConfigPage from '../Interfaces/IConfigPage.js';
 import { InOutPage } from './index.js';
 import { color, url } from '../Config/EmbedConfig.js';
-import { client } from '../BotEvent/index.js';
+import { client } from '../EventHandler/index.js';
 import logger from '../Utils/Logger.js';
 import { Values, ParseInOutMsg } from '../Utils/ParseString.js';
 

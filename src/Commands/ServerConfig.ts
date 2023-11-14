@@ -15,8 +15,8 @@ import {
   BaseInteraction,
   PermissionsBitField,
 } from 'discord.js';
-import { v1 } from 'uuid';
 import { inspect } from 'util';
+import { randomUUID } from 'crypto';
 import ICommand from '../Interfaces/ICommand.js';
 import logger from '../Utils/Logger.js';
 import { color, url } from '../Config/EmbedConfig.js';
@@ -32,6 +32,7 @@ import {
   SysChConfig,
   UserAutoRoleConfig,
   InOutMsgChannelConfig,
+  AnnouncePage,
 } from '../ConfigAssets/index.js';
 
 // #region Pages
@@ -104,6 +105,7 @@ const PageList = new Map<
 PageList.set('main', MainPage);
 PageList.set('ordinary', OrdinaryPage);
 PageList.set('inout', InOutPage);
+PageList.set('announce', AnnouncePage);
 
 const ExecuteList = new Map<
   string,
@@ -140,12 +142,6 @@ const command: ICommand = {
     if (!guild) return;
     if (!channel) return;
 
-    logger.info(
-      inspect(
-        (interaction.member?.permissions as PermissionsBitField).toArray(),
-      ),
-    );
-
     if (
       !(interaction.member?.permissions as PermissionsBitField)
         .toArray()
@@ -162,12 +158,14 @@ const command: ICommand = {
       return;
     }
 
-    const uuid = v1();
+    const uuid = randomUUID();
 
     try {
+      logger.info('L164');
+
       const guilddata = await GuildModel.findOne({ id: guild!.id });
 
-      // 가입해 닝겐
+      // not registered
       if (!guilddata) {
         interaction.reply({
           content:
@@ -178,15 +176,23 @@ const command: ICommand = {
         return;
       }
 
-      // 페이지 구하기
+      logger.info('L179');
+      // get page
       const pagename = 'main';
 
       const page = PageList.get(pagename);
 
+      logger.info('L185');
+
+      if (!page) logger.info('PAGE_NOT_FOUND');
+
+      if (page)
+        logger.info(inspect(await page(interaction, uuid), true, 10, true));
+
       let replymsg: Message | undefined;
       let replyinteraction: InteractionResponse<boolean> | undefined;
 
-      // 메인페이지 전송
+      // send page
       if (page) {
         replymsg = (await interaction.reply({
           embeds: [(await page(interaction, uuid)).embed],
@@ -197,14 +203,14 @@ const command: ICommand = {
 
       const prefix = `cdec.${uuid}.config.`;
 
-      // 콜렉터 필터
+      // button collector filter
       const filter = (i: MessageComponentInteraction) => {
         return (
           i.customId.startsWith(prefix) && i.user.id === interaction.user.id
         );
       };
 
-      // 컴포넌트 콜렉터 생성
+      // create button collector
       const collector = interaction.channel.createMessageComponentCollector({
         filter,
         componentType: ComponentType.Button,
@@ -213,21 +219,21 @@ const command: ICommand = {
       collector.on('collect', async i => {
         const executecode = i.customId.substring(prefix.length);
 
-        // 설정창
+        // open sub-page
         if (executecode.startsWith('execute')) {
-          const code = executecode.substring(8);
+          const assetName = executecode.substring(8);
 
-          if (!ExecuteList.has(code)) {
+          if (!ExecuteList.has(assetName)) {
             logger.info('Page Not Found 404');
             return;
           }
 
-          const execute = ExecuteList.get(code);
+          const execute = ExecuteList.get(assetName);
 
           if (execute) {
             if (replymsg) await replymsg.delete();
 
-            // execute 하기
+            // execute page
             const returnpage = await execute(i, uuid);
 
             replymsg = await channel.send({
@@ -253,7 +259,7 @@ const command: ICommand = {
         }
       });
     } catch (e) {
-      logger.error(e);
+      logger.error(inspect(e, true, 10, true));
     }
   },
 };
