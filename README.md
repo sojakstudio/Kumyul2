@@ -1,3 +1,5 @@
+<h1 align=center> **Migrated to <a href="https://github.com/sojakstudio/kumyul2">Sojakstudio/Kumyul2</a>** </h1>
+
 <h1 align=center>
   CdecBot
   </h1>

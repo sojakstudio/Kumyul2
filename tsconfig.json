@@ -1,8 +1,10 @@
 {
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "compilerOptions": {
-    "target": "ES6",
-    "module": "es6",
+    "target": "es2022",
+    "module": "es2022",
     "moduleResolution": "node",
     "rootDir": "./src",
     "outDir": "./dist",
@@ -13,6 +15,6 @@
     "resolveJsonModule": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "removeComments": true
+    "removeComments": true,
   }
 }

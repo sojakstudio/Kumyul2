@@ -1,59 +1,48 @@
 // 모듈 로드
-import {
-  Message,
-  Interaction,
-  Guild,
-  GuildMember,
-  PartialGuildMember,
-} from 'discord.js';
+import { Partials, Options } from 'discord.js';
 import * as dotenv from 'dotenv';
-import {
-  client,
-  Start,
-  MsgRecv,
-  InterAcRecv,
-  GuildAdd,
-  GuildMemberAdd,
-  GuildMemberRemove,
-} from './EventHandler/index.js';
-import { LoadConfig } from './Config/ConfigManager.js';
-import { Connect } from './Database/DBManager.js';
-import logger from './Utils/Logger.js';
+import { inspect } from 'util';
+import Config from './config/index.js';
+import Bot from './core/bot.js';
+import CustomClient from './core/client.js';
 
 // .env 로딩
 if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
+const config = await new Config().LoadConfig();
 
-LoadConfig().then(async () => {
-  await Connect();
-
-  client.once('ready', () => Start());
-
-  client.on('messageCreate', (msg: Message) => {
-    MsgRecv(msg);
+// Bot Entry Point
+async function start(): Promise<void> {
+  const client: CustomClient = new CustomClient({
+    intents: config.client?.intents ?? 0,
+    partials: config.client?.partials
+      ? config.client.partials.map(
+          partials => Partials[partials as keyof typeof Partials],
+        )
+      : undefined,
+    makeCache: Options.cacheWithLimits({
+      ...Options.DefaultMakeCacheSettings,
+      ...config.client?.caches,
+    }),
+    sweepers: {
+      ...Options.DefaultSweeperSettings,
+      messages: {
+        interval: 3600, // 1 hours
+        lifetime: 1800, // 30 min
+      },
+      users: {
+        interval: 3600, // 1 hour
+        filter: () => user => user.bot && user.id !== client.user?.id, // exclude bot
+      },
+    },
   });
 
-  client.on('interactionCreate', (interaction: Interaction) => {
-    InterAcRecv(interaction);
-  });
+  client.getLogger().info(inspect(config, true, 10, true));
 
-  client.on('guildCreate', (guild: Guild) => {
-    GuildAdd(guild);
-  });
+  const bot = new Bot(config, client, process.env.NODE_ENV === 'production');
 
-  client.on('guildMemberAdd', (member: GuildMember) => {
-    GuildMemberAdd(member);
-  });
+  await bot.start();
+}
 
-  client.on('guildMemberRemove', (member: GuildMember | PartialGuildMember) => {
-    logger.info('guild member remove');
-    GuildMemberRemove(member);
-  });
-
-  client.login(
-    process.env.NODE_ENV === 'production'
-      ? process.env.TOKEN
-      : process.env.TESTTOKEN,
-  );
-});
+start();

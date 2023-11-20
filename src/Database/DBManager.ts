@@ -1,11 +1,11 @@
-import mongoose from 'mongoose';
-import logger from '../Utils/Logger.js';
+import { connect } from 'mongoose';
+import IConfig from '../interfaces/IConfig.js';
 
-// eslint-disable-next-line
-export const Connect = () =>
-  new Promise<void>(async (resolve, reject) => {
-    mongoose
-      .connect(process.env.DBURL!)
+const mongoConnect = (config: IConfig) =>
+  new Promise<void>((resolve, reject) => {
+    connect(config.database.mongoURL)
       .then(() => resolve())
       .catch(err => reject(err));
   });
+
+export default mongoConnect;
