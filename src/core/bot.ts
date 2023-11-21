@@ -115,7 +115,7 @@ export default class Bot {
       const activitylist: ActivityOptions[] = [
         { name: '/도움말 | Sojak Studio!', type: ActivityType.Playing },
         {
-          name: '/도움말 | Cdecbot v2.0.0-Beta5.4',
+          name: `/도움말 | Cdecbot ${this.config.application.version}`,
           type: ActivityType.Listening,
         },
         {
@@ -137,7 +137,7 @@ export default class Bot {
 
       // renew the activity
       this.client.setActivity(activitiy);
-    }, 5000);
+    }, 8000);
   }
 
   /**
