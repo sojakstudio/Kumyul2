@@ -113,9 +113,8 @@ export default class Bot {
     setInterval(() => {
       // activity list
       const activitylist: ActivityOptions[] = [
-        { name: '귀여운 관리봇 시덱이', type: ActivityType.Listening },
-        { name: 'Sojak Studio!', type: ActivityType.Playing },
-        { name: ' 도움은 "/도움말"', type: ActivityType.Listening },
+        { name: '/도움말 | Sojak Studio!', type: ActivityType.Playing },
+        { name: '/도움말 | 관리봇 시덱이!', type: ActivityType.Listening },
         {
           name: `${this.client.guilds.cache.size}개의 서버와 함께`,
           type: ActivityType.Playing,
