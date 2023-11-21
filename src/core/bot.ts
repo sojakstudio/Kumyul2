@@ -113,18 +113,20 @@ export default class Bot {
     setInterval(() => {
       // activity list
       const activitylist: ActivityOptions[] = [
-        { name: '귀여운 관리봇 시덱이', type: ActivityType.Listening },
-        { name: 'Sojak Studio!', type: ActivityType.Playing },
-        { name: ' 도움은 "/도움말"', type: ActivityType.Listening },
+        { name: '/도움말 | Sojak Studio!', type: ActivityType.Playing },
         {
-          name: `${this.client.guilds.cache.size}개의 서버와 함께`,
+          name: `/도움말 | Cdecbot ${this.config.application.version}`,
+          type: ActivityType.Listening,
+        },
+        {
+          name: `/도움말 | With ${this.client.guilds.cache.size} Servers`,
           type: ActivityType.Playing,
         },
         {
-          name: `${this.client.guilds.cache.reduce(
+          name: `/도움말 | With ${this.client.guilds.cache.reduce(
             (a, g) => a + g.memberCount,
             0,
-          )}명과 함께`,
+          )} Users`,
           type: ActivityType.Playing,
         },
       ];
@@ -135,7 +137,7 @@ export default class Bot {
 
       // renew the activity
       this.client.setActivity(activitiy);
-    }, 5000);
+    }, 8000);
   }
 
   /**

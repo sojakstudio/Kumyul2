@@ -5,6 +5,9 @@ import {
 } from 'discord.js';
 
 export default interface IConfig {
+  application: {
+    version: string;
+  };
   client: {
     id: string;
     token: string;
