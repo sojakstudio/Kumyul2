@@ -19,7 +19,6 @@ import {
 } from 'discord.js';
 import { randomUUID } from 'crypto';
 import ICommand from '../interfaces/ICommand.js';
-import logger from '../utils/logger.js';
 import { VoteModel } from '../Database/VoteSchema.js';
 import { url } from '../config/EmbedConfig.js';
 import CustomClient from '../core/client.js';
@@ -54,21 +53,24 @@ const command: ICommand = {
       return;
     }
 
-    const id = `${randomUUID()}`;
+    const uuid = `${randomUUID()}`;
 
     // modal 생성
     const modal = new ModalBuilder()
-      .setCustomId(`cvotemodal.${id}`)
+      .setCustomId(`cvotemodal.${uuid}`)
       .setTitle('찬반투표 개설');
 
     const input1 = new TextInputBuilder()
-      .setCustomId(`cvotemodal.${id}.topic`)
+      .setMaxLength(256)
+      .setCustomId(`cvotemodal.${uuid}.topic`)
       .setLabel('주제')
       .setStyle(TextInputStyle.Short);
 
     const input2 = new TextInputBuilder()
-      .setCustomId(`cvotemodal.${id}.desc`)
+      .setMaxLength(4000)
+      .setCustomId(`cvotemodal.${uuid}.desc`)
       .setLabel('설명')
+      .setValue('새 투표에요!')
       .setStyle(TextInputStyle.Paragraph);
 
     const actionRow1 =
@@ -96,9 +98,9 @@ const command: ICommand = {
 
     // when modal returned
     collector.on('collect', async (i: ModalSubmitInteraction) => {
-      if (i.customId === `cvotemodal.${id}`) {
-        const topic = i.fields.getTextInputValue(`cvotemodal.${id}.topic`);
-        const desc = i.fields.getTextInputValue(`cvotemodal.${id}.desc`);
+      if (i.customId === `cvotemodal.${uuid}`) {
+        const topic = i.fields.getTextInputValue(`cvotemodal.${uuid}.topic`);
+        const desc = i.fields.getTextInputValue(`cvotemodal.${uuid}.desc`);
 
         collector.stop();
 
@@ -112,20 +114,20 @@ const command: ICommand = {
             { name: '반대', value: '0', inline: true },
           )
           .setFooter({
-            text: `${interaction.user.username}#${interaction.user.discriminator}님이 시작했어요!`,
+            text: `${interaction.user.username}님이 시작했어요!`,
           });
 
         const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
-            .setCustomId(`cdvo.${id}_agree`)
+            .setCustomId(`cdvo.${uuid}_agree`)
             .setLabel('👍')
             .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
-            .setCustomId(`cdvo.${id}_disagree`)
+            .setCustomId(`cdvo.${uuid}_disagree`)
             .setLabel('👎')
             .setStyle(ButtonStyle.Danger),
           new ButtonBuilder()
-            .setCustomId(`cdvo.${id}_lock`)
+            .setCustomId(`cdvo.${uuid}_lock`)
             .setLabel('🔒')
             .setStyle(ButtonStyle.Secondary),
         );
@@ -137,7 +139,7 @@ const command: ICommand = {
         });
 
         await VoteModel.create({
-          id,
+          id: uuid,
           topic,
           msgid: msg.id,
           description: desc || null,

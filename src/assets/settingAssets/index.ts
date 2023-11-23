@@ -8,3 +8,4 @@ export { default as SysChConfig } from './SysChConfig.js';
 export { default as UserAutoRoleConfig } from './UserAutoRoleConfig.js';
 export { default as InOutMsgChannelConfig } from './InOutMsgChannelConfig.js';
 export { default as AnnouncePage } from './AnnouncePage.js';
+export { default as AnnounceChConfig } from './AnnounceChConfig.js';

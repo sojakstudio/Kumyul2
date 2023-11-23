@@ -18,21 +18,21 @@ import {
 import { inspect } from 'util';
 import { randomUUID } from 'crypto';
 import ICommand from '../interfaces/ICommand.js';
-import logger from '../utils/logger.js';
 import { color, url } from '../config/EmbedConfig.js';
 import { GuildModel } from '../Database/GuildSchema.js';
 import ConfigPage, { ConfigWindow } from '../interfaces/ISettings.js';
 import {
-  BotAutoRoleConfig,
-  InMsgConfig,
   InOutPage,
   MainPage,
   OrdinaryPage,
-  OutMsgConfig,
   SysChConfig,
-  UserAutoRoleConfig,
-  InOutMsgChannelConfig,
   AnnouncePage,
+  UserAutoRoleConfig,
+  BotAutoRoleConfig,
+  InOutMsgChannelConfig,
+  InMsgConfig,
+  OutMsgConfig,
+  AnnounceChConfig,
 } from '../assets/settingAssets/index.js';
 import CustomClient from '../core/client.js';
 
@@ -115,7 +115,15 @@ const ExecuteList = new Array<ConfigWindow>();
 // ExecuteList.set('inmsgconfig', InMsgConfig);
 // ExecuteList.set('outmsgconfig', OutMsgConfig);
 // ExecuteList.set('inoutmsgchannelconfig', InOutMsgChannelConfig);
-ExecuteList.push(SysChConfig);
+ExecuteList.push(
+  SysChConfig,
+  UserAutoRoleConfig,
+  BotAutoRoleConfig,
+  InMsgConfig,
+  OutMsgConfig,
+  InOutMsgChannelConfig,
+  AnnounceChConfig,
+);
 
 export { PageList, ExecuteList };
 
@@ -171,24 +179,23 @@ const command: ICommand = {
         return;
       }
 
-      // get page
+      // get mainpage
       const pagename = 'main';
 
       const page = PageList.get(pagename);
 
-      if (!page) client.getLogger().info('PAGE_NOT_FOUND');
+      if (!page) client.getLogger().info('MAIN_PAGE_NOT_FOUND');
 
-      let replymsg: Message | undefined;
       let replyinteraction: InteractionResponse<boolean> | undefined;
 
       // send page
-      if (page) {
-        replymsg = (await interaction.reply({
-          embeds: [(await page(interaction, uuid)).embed],
-          components: (await page(interaction, uuid)).components,
-          fetchReply: true,
-        })) as Message<boolean>;
-      }
+      let replymsg = await interaction.reply({
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        embeds: [(await page!(interaction, uuid)).embed],
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        components: (await page!(interaction, uuid)).components,
+        fetchReply: true,
+      });
 
       const prefix = `cdec.${uuid}.config.`;
 
@@ -200,16 +207,45 @@ const command: ICommand = {
       };
 
       // create button collector
-      if (!replyinteraction) return;
-      const collector = replyinteraction.createMessageComponentCollector({
+      const collector = channel.createMessageComponentCollector({
         filter,
         componentType: ComponentType.Button,
+        // 60 min
+        time: 3600_000,
+        max: 1000,
+        maxComponents: 1000,
       });
 
+      // detect idle time
+      let sec = 0;
+      const idleInterval = setInterval(async () => {
+        sec++;
+
+        client.getLogger().info(`Idle timer ${sec}sec`);
+        // if idle timer over 5m
+        if (sec >= 30) {
+          collector.stop();
+          // change final reply msg
+          if (replymsg) {
+            await replymsg.delete();
+            await channel.send({
+              content: 'Idle for 5 minutes! Closing the Server Settings!',
+            });
+          }
+
+          clearInterval(idleInterval);
+        }
+      }, 1000);
+
       collector.on('collect', async i => {
+        // reset idle timer
+        sec = 0;
+
         const executecode = i.customId.substring(prefix.length);
 
-        // open sub-page
+        client.getLogger().info(`Execute Code ${i.customId}`);
+
+        // if it is a execute command
         if (executecode.startsWith('execute')) {
           const assetName = executecode.substring(8);
 
@@ -231,22 +267,31 @@ const command: ICommand = {
               components: (await returnpage(i, uuid)).components,
             });
           }
-        } else {
+        } // or find a page
+        else {
           const executepage = PageList.get(executecode);
 
           // 메인페이지 전송
           if (executepage) {
             if (replymsg) await replymsg.delete();
 
-            replymsg = (await i.reply({
+            replymsg = await i.reply({
               embeds: [(await executepage(i, uuid)).embed],
               components: (await executepage(i, uuid)).components,
               fetchReply: true,
-            })) as Message<boolean>;
+            });
           } else {
             client.getLogger().info('Page Not Found 404');
           }
         }
+      });
+
+      collector.on('dispose', async i => {
+        client.getLogger().info(`Collector ${uuid} disposed`);
+      });
+
+      collector.on('end', async i => {
+        client.getLogger().info(`Collector ${uuid} ended`);
       });
     } catch (e) {
       client.getLogger().error(inspect(e, true, 5, true));

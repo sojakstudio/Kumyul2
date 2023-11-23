@@ -13,16 +13,18 @@ import ConfigPage from '../../interfaces/ISettings.js';
 const OrdinaryPage = async (interaction: BaseInteraction, uuid: string) => {
   const guildData = await GuildModel.findOne({ id: interaction.guild!.id });
 
+  const guild = interaction.guild;
+
   let sysnoticechannel: string | undefined;
 
-  if (guildData?.sysnoticechannel) {
-    await interaction
-      .guild!.channels.fetch(guildData?.sysnoticechannel)
+  if (guildData?.sysnoticechannel && guild) {
+    await guild.channels
+      .fetch(guildData?.sysnoticechannel)
       .then(querychannel => {
         // 없으면
         if (!querychannel) {
           // 채널 가져오기
-          interaction.guild!.channels.fetch().then(channels => {
+          guild.channels.fetch().then(channels => {
             if (channels.size === 0) return;
 
             let isended = false;
@@ -39,8 +41,8 @@ const OrdinaryPage = async (interaction: BaseInteraction, uuid: string) => {
           sysnoticechannel = querychannel.id;
         }
       });
-  } else {
-    await interaction.guild!.channels.fetch().then(channels => {
+  } else if (guild) {
+    await guild.channels.fetch().then(channels => {
       if (channels.size === 0) return;
 
       let isended = false;
