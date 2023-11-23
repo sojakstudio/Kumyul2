@@ -31,6 +31,9 @@ const AnnounceChConfig = new ConfigWindow(
           // delete message
           if (infoMsg) await infoMsg.delete();
 
+          // stop collector
+          collector?.stop();
+
           // return parentPage
           resolve(parentPage);
         } else if (msg.content.startsWith('<#')) {
