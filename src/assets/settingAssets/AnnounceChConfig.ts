@@ -23,8 +23,29 @@ const AnnounceChConfig = new ConfigWindow(
       });
 
       const infoMsg = await interaction.channel?.send(
-        "> Please mention the channel you want to set as the server's announcement channel. To cancel, type >cancel on this channel.",
+        "> Please mention the channel you want to set as the server's announcement channel in 60 seconds. To cancel, type >cancel on this channel.",
       );
+
+      // detect idle time
+      let sec = 0;
+      const idleInterval = setInterval(async () => {
+        sec++;
+        // if idle timer over idleTime limit
+        if (sec >= 60) {
+          collector?.stop();
+
+          // delete final reply msg
+          if (infoMsg) await infoMsg.delete();
+
+          await interaction.channel?.send(
+            '> No input received during 60 seconds. Returning to the setting page.',
+          );
+
+          clearInterval(idleInterval);
+
+          resolve(parentPage);
+        }
+      }, 1000);
 
       collector!.on('collect', async (msg: Message) => {
         if (msg.content === '>cancel') {
@@ -58,7 +79,7 @@ const AnnounceChConfig = new ConfigWindow(
             if (infoMsg) await infoMsg.delete();
 
             await msg.channel.send(
-              `The server's announcement channel is successfully changed into <#${channel.id}>`,
+              `> Server's announcement channel is successfully changed into <#${channel.id}>`,
             );
 
             collector?.stop();

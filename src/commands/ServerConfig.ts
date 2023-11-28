@@ -189,7 +189,7 @@ const command: ICommand = {
       let replyinteraction: InteractionResponse<boolean> | undefined;
 
       // send page
-      let replymsg = await interaction.reply({
+      let replymsg: Message<boolean> | undefined = await interaction.reply({
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         embeds: [(await page!(interaction, uuid)).embed],
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -216,16 +216,17 @@ const command: ICommand = {
         maxComponents: 1000,
       });
 
+      const idleTime = 300; // 300sec / 5min
+
       // detect idle time
       let sec = 0;
       const idleInterval = setInterval(async () => {
         sec++;
-
-        client.getLogger().info(`Idle timer ${sec}sec`);
-        // if idle timer over 5m
-        if (sec >= 30) {
+        // if idle timer over idleTime limit
+        if (sec >= idleTime) {
           collector.stop();
-          // change final reply msg
+
+          // delete final reply msg
           if (replymsg) {
             await replymsg.delete();
             await channel.send({
@@ -243,21 +244,33 @@ const command: ICommand = {
 
         const executecode = i.customId.substring(prefix.length);
 
-        client.getLogger().info(`Execute Code ${i.customId}`);
-
         // if it is a execute command
         if (executecode.startsWith('execute')) {
           const assetName = executecode.substring(8);
 
           if (!ExecuteList.filter(object => object.name === assetName)) {
-            client.getLogger().info('Page Not Found 404');
+            client
+              .getLogger()
+              .error(
+                `ERR: COMMAND NOT FOUND WHILE RESPONDING REQUEST ${i.customId}`,
+              );
+
+            // reply error message
+            i.reply({
+              content: `Error occurred while fetching assets, ERR: COMMAND NOT FOUND WHILE RESPONDING REQUEST ${i.customId}`,
+              ephemeral: true,
+            });
+
             return;
           }
 
           const result = ExecuteList.find(object => object.name === assetName);
 
           if (result) {
-            if (replymsg) await replymsg.delete();
+            if (replymsg) {
+              await replymsg.delete();
+              replymsg = undefined;
+            }
 
             // execute page
             const returnpage = await result.execute(i, uuid, client);
@@ -273,7 +286,10 @@ const command: ICommand = {
 
           // 메인페이지 전송
           if (executepage) {
-            if (replymsg) await replymsg.delete();
+            if (replymsg) {
+              await replymsg.delete();
+              replymsg = undefined;
+            }
 
             replymsg = await i.reply({
               embeds: [(await executepage(i, uuid)).embed],
@@ -281,15 +297,20 @@ const command: ICommand = {
               fetchReply: true,
             });
           } else {
-            client.getLogger().info('Page Not Found 404');
+            client
+              .getLogger()
+              .info(
+                `ERR: PAGE NOT FOUND WHILE RESPONDING REQUEST ${i.customId}`,
+              );
+
+            // reply error message
+            i.reply({
+              content: `Error occurred while fetching assets, ERR: COMMAND NOT FOUND WHILE RESPONDING REQUEST ${i.customId}`,
+              ephemeral: true,
+            });
           }
         }
       });
-
-      collector.on('dispose', async i => {
-        client.getLogger().info(`Collector ${uuid} disposed`);
-      });
-
       collector.on('end', async i => {
         client.getLogger().info(`Collector ${uuid} ended`);
       });

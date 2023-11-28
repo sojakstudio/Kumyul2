@@ -28,11 +28,7 @@ import { Page } from '../../interfaces/types.js';
 
 const OutMsgConfig = new ConfigWindow(
   'outmsgconfig',
-  (
-    interaction: BaseInteraction<CacheType>,
-    uuid: string,
-    client: CustomClient,
-  ) =>
+  (interaction: BaseInteraction, uuid: string, client: CustomClient) =>
     new Promise<Page>(async (resolve, reject) => {
       const parentPage = InOutPage;
 
@@ -78,104 +74,104 @@ const OutMsgConfig = new ConfigWindow(
 
       collector.on('collect', async (i: ModalSubmitInteraction) => {
         if (i.customId === `cmodal.${uuid}`) {
-          return;
-        }
-        const title = i.fields.getTextInputValue(`cmodal.${uuid}.title`);
-        const desc = i.fields.getTextInputValue(`cmodal.${uuid}.desc`);
-
-        collector.stop();
-
-        const prefix = `cdecmodalinputconfirm.${uuid}`;
-
-        // 콜렉터 필터
-        const filter = (int: MessageComponentInteraction) => {
-          return (
-            int.customId.startsWith(prefix) &&
-            int.user.id === interaction.user.id
-          );
-        };
-
-        // 컴포넌트 콜렉터 생성
-        const buttoncollector =
-          interaction.channel?.createMessageComponentCollector({
-            filter,
-            componentType: ComponentType.Button,
-          });
-
-        // 컨텐츠 파싱
-        const option: Values = {
-          usertag: i.user.discriminator,
-          username: i.user.username,
-          userid: i.user.id,
-          guildname: `${i.guild?.name}`,
-          guildid: `${i.guild?.id}`,
-          membercount: `${i.guild?.memberCount}`,
-        };
-
-        const titlectx = parseContent(title, option);
-
-        let descctx = parseContent(desc, option);
-
-        descctx = descctx.replace(
-          /(usermention|\${usermention})/gm,
-          `<@${i.user.id}>`,
-        );
-
-        const button = new ButtonBuilder()
-          .setLabel('확인')
-          .setStyle(ButtonStyle.Success)
-          .setCustomId(`${prefix}.true`);
-        const button2 = new ButtonBuilder()
-          .setLabel('취소')
-          .setStyle(ButtonStyle.Danger)
-          .setCustomId(`${prefix}.false`);
-
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          button,
-          button2,
-        );
-
-        const embed = new EmbedBuilder()
-          .setColor(color)
-          .setAuthor({ name: '시덱이', iconURL: url })
-          .setTitle(titlectx)
-          .setDescription(descctx);
-
-        const replymsg = await i.reply({
-          content:
-            '> :pushpin: 퇴장 메시지 예시 화면이에요! 진행하고 싶으면 `확인`, 취소하고 싶으면 `취소`를 눌러주세요!',
-          embeds: [embed],
-          components: [row],
-          fetchReply: true,
-        });
-
-        buttoncollector!.on('collect', async buttoni => {
-          const result = buttoni.customId.substring(prefix.length + 1);
+          const title = i.fields.getTextInputValue(`cmodal.${uuid}.title`);
+          const desc = i.fields.getTextInputValue(`cmodal.${uuid}.desc`);
 
           collector.stop();
-          try {
-            await replymsg.delete();
 
-            if (result === 'true') {
-              await GuildModel.updateOne(
-                { id: i.guild?.id },
-                { outmsg: [title, desc] },
-              );
-              buttoni.reply({
-                content: '변경사항을 성공적으로 반영했어요!',
-                ephemeral: true,
-              });
-            } else if (result === 'false')
-              buttoni.reply({
-                content: '퇴장 메세지 입력을 취소했어요! 다시 시도해주세요!',
-                ephemeral: true,
-              });
+          // 컨텐츠 파싱
+          const option: Values = {
+            usertag: i.user.discriminator,
+            username: i.user.username,
+            userid: i.user.id,
+            guildname: `${i.guild?.name}`,
+            guildid: `${i.guild?.id}`,
+            membercount: `${i.guild?.memberCount}`,
+          };
 
-            resolve(parentPage);
-          } catch (e) {
-            client.getLogger().error(e);
-          }
-        });
+          const titlectx = parseContent(title, option);
+
+          let descctx = parseContent(desc, option);
+
+          descctx = descctx.replace(
+            /(usermention|\${usermention})/gm,
+            `<@${i.user.id}>`,
+          );
+
+          const prefix = `cdecmodalinputconfirm.${uuid}`;
+
+          // 콜렉터 필터
+          const filter = (int: MessageComponentInteraction) => {
+            return (
+              int.customId.startsWith(prefix) &&
+              int.user.id === interaction.user.id
+            );
+          };
+
+          // 컴포넌트 콜렉터 생성
+          const buttoncollector =
+            interaction.channel?.createMessageComponentCollector({
+              filter,
+              componentType: ComponentType.Button,
+            });
+
+          const button = new ButtonBuilder()
+            .setLabel('확인')
+            .setStyle(ButtonStyle.Success)
+            .setCustomId(`${prefix}.true`);
+          const button2 = new ButtonBuilder()
+            .setLabel('취소')
+            .setStyle(ButtonStyle.Danger)
+            .setCustomId(`${prefix}.false`);
+
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            button,
+            button2,
+          );
+
+          const embed = new EmbedBuilder()
+            .setColor(color)
+            .setAuthor({ name: '시덱이', iconURL: url })
+            .setTitle(titlectx)
+            .setDescription(descctx);
+
+          const replymsg = await i.reply({
+            content:
+              '> :pushpin: 퇴장 메시지 예시 화면이에요! 진행하고 싶으면 `확인`, 취소하고 싶으면 `취소`를 눌러주세요!',
+            embeds: [embed],
+            components: [row],
+            fetchReply: true,
+          });
+
+          buttoncollector!.on('collect', async buttoni => {
+            const result = buttoni.customId.substring(prefix.length + 1);
+
+            collector.stop();
+
+            try {
+              await replymsg.delete();
+
+              if (result === 'true') {
+                await GuildModel.updateOne(
+                  { id: i.guild?.id },
+                  { outmsg: [title, desc] },
+                );
+                buttoni.reply({
+                  content: '변경사항을 성공적으로 반영했어요!',
+                  ephemeral: true,
+                });
+              } else if (result === 'false')
+                buttoni.reply({
+                  content: '퇴장 메세지 입력을 취소했어요! 다시 시도해주세요!',
+                  ephemeral: true,
+                });
+
+              resolve(parentPage);
+            } catch (e) {
+              client.getLogger().error(e);
+            }
+          });
+        }
       });
     }),
 );
