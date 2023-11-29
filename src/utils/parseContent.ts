@@ -25,6 +25,10 @@ export function parseContent(string: string, values: Values) {
     `<t:${unixTimestamp()}:t>`,
   );
   context = context.replace(
+    /(timestamp|\${timestamp})/gm,
+    `<t:${unixTimestamp()}:f>`,
+  );
+  context = context.replace(
     /(timestamp_T|\${timestamp_T})/gm,
     `<t:${unixTimestamp()}:T>`,
   );
@@ -43,6 +47,10 @@ export function parseContent(string: string, values: Values) {
   context = context.replace(
     /(timestamp_F|\${timestamp_F})/gm,
     `<t:${unixTimestamp()}:F>`,
+  );
+  context = context.replace(
+    /(timestamp_F|\${timestamp_R})/gm,
+    `<t:${unixTimestamp()}:R>`,
   );
 
   return context;

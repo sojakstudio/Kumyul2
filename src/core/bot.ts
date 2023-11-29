@@ -66,7 +66,7 @@ export default class Bot {
       this.onGuildCreate(guild),
     );
     this.client.on(Events.GuildMemberAdd, (member: GuildMember) => {
-      this.onGuildMemberAdd(member);
+      this.onGuildMemberAdd(this.client, member);
     });
     this.client.on(
       Events.GuildMemberRemove,
@@ -167,8 +167,11 @@ export default class Bot {
    * on Guild Member Add Event
    * @param member Added Guild Member object
    */
-  private async onGuildMemberAdd(member: GuildMember): Promise<void> {
-    guildMemberAdd(member);
+  private async onGuildMemberAdd(
+    client: CustomClient,
+    member: GuildMember,
+  ): Promise<void> {
+    guildMemberAdd(client, member);
   }
 
   /**

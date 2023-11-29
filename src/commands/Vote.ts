@@ -143,6 +143,8 @@ const command: ICommand = {
           topic,
           msgid: msg.id,
           description: desc || null,
+          guild: interaction.guild?.id,
+          channel: interaction.channel?.id,
           agree: 0,
           disagree: 0,
           uservoted: new Map<string, boolean>(),

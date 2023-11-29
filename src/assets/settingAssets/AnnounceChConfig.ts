@@ -22,9 +22,10 @@ const AnnounceChConfig = new ConfigWindow(
         time: 60000,
       });
 
-      const infoMsg = await interaction.channel?.send(
-        "> Please mention the channel you want to set as the server's announcement channel in 60 seconds. To cancel, type >cancel on this channel.",
-      );
+      let infoMsg: Message<boolean> | undefined =
+        await interaction.channel?.send(
+          "> Please mention the channel you want to set as the server's announcement channel in 60 seconds. To cancel, type >cancel on this channel.",
+        );
 
       // detect idle time
       let sec = 0;
@@ -49,8 +50,13 @@ const AnnounceChConfig = new ConfigWindow(
 
       collector!.on('collect', async (msg: Message) => {
         if (msg.content === '>cancel') {
+          // clear interval timer
+          clearInterval(idleInterval);
+
           // delete message
           if (infoMsg) await infoMsg.delete();
+
+          infoMsg = undefined;
 
           // stop collector
           collector?.stop();
@@ -69,14 +75,22 @@ const AnnounceChConfig = new ConfigWindow(
               channel?.type === ChannelType.GuildAnnouncement
             )
           )
-            msg.channel.send("Please mention your guild's text channel!");
+            msg.channel.send(
+              "Please mention your guild's text channel or announcement channel!",
+            );
           else {
+            // update channel
             await GuildModel.updateOne(
               { id: msg.guild!.id },
-              { sysnoticechannel: channelId },
+              { announcechannel: channelId },
             );
 
+            // clear interval timer
+            clearInterval(idleInterval);
+
             if (infoMsg) await infoMsg.delete();
+
+            infoMsg = undefined;
 
             await msg.channel.send(
               `> Server's announcement channel is successfully changed into <#${channel.id}>`,

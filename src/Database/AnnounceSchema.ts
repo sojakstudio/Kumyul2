@@ -2,18 +2,18 @@ import typegoose from '@typegoose/typegoose';
 
 const { prop, getModelForClass } = typegoose;
 
-export class VoteClass {
+export class AnnounceClass {
   @prop({ required: true })
   id!: string;
 
   @prop({ required: true })
-  topic!: string;
+  title!: string;
+
+  @prop()
+  content?: string;
 
   @prop({ required: true })
   msgid!: string;
-
-  @prop()
-  description?: string;
 
   @prop({ required: true })
   guild!: string;
@@ -22,15 +22,12 @@ export class VoteClass {
   channel!: string;
 
   @prop({ required: true, default: 0 })
-  agree!: number;
+  read!: number;
 
-  @prop({ required: true, default: 0 })
-  disagree!: number;
-
-  // true => agree
-  // false => disagree
+  // true => read
+  // false => not read
   @prop({ required: true })
-  uservoted!: Map<string, boolean>;
+  userread!: Array<string>;
 
   // 투표 생성자 ID
   @prop({ required: true })
@@ -40,4 +37,4 @@ export class VoteClass {
   makername!: string;
 }
 
-export const VoteModel = getModelForClass(VoteClass);
+export const AnnounceModel = getModelForClass(AnnounceClass);

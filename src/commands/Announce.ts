@@ -23,6 +23,7 @@ import {
 } from 'discord.js';
 import { url } from '../config/EmbedConfig.js';
 import CustomClient from '../core/client.js';
+import { AnnounceClass, AnnounceModel } from '../Database/AnnounceSchema.js';
 import { GuildModel } from '../Database/GuildSchema.js';
 import ICommand from '../interfaces/ICommand.js';
 
@@ -152,18 +153,18 @@ const command: ICommand = {
 
         const embed = new EmbedBuilder()
           .setColor('#ad1456')
-          .setAuthor({ name: 'Cdec', iconURL: url })
+          .setAuthor({ name: 'CdecBot', iconURL: url })
           .setTitle(title)
           .setDescription(ctnt)
-          .setFooter({ text: 'Press 👍 To Mark as Read' });
+          .setFooter({ text: '0 User Read | Press 👍 To Mark as Read' });
 
         const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
-            .setCustomId(`cdvo.${uuid}_proceed`)
+            .setCustomId(`cdanunce.${uuid}_proceed`)
             .setLabel('✔️')
             .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
-            .setCustomId(`cdvo.${uuid}_cancel`)
+            .setCustomId(`cdanunce.${uuid}_cancel`)
             .setLabel('❌')
             .setStyle(ButtonStyle.Danger),
         );
@@ -177,7 +178,7 @@ const command: ICommand = {
 
         const filter = (i2: MessageComponentInteraction) => {
           return (
-            i2.customId.startsWith(`cdvo.${uuid}`) &&
+            i2.customId.startsWith(`cdanunce.${uuid}`) &&
             i2.user.id === interaction.user.id
           );
         };
@@ -187,13 +188,13 @@ const command: ICommand = {
           time: 180_000,
         });
 
-        if (confirmation.customId === `cdvo.${uuid}_proceed`) {
+        if (confirmation.customId === `cdanunce.${uuid}_proceed`) {
           await msg.delete();
 
           const checkbutton =
             new ActionRowBuilder<ButtonBuilder>().addComponents(
               new ButtonBuilder()
-                .setCustomId(`cdvo.${uuid}_proceed`)
+                .setCustomId(`cdanunce.${uuid}_read`)
                 .setLabel('👍')
                 .setStyle(ButtonStyle.Success),
             );
@@ -207,7 +208,20 @@ const command: ICommand = {
             content: 'Announcement successfully posted',
             ephemeral: true,
           });
-        } else if (confirmation.customId === `cdvo.${uuid}_cancel`) {
+
+          await AnnounceModel.create({
+            id: uuid,
+            title,
+            content: ctnt || null,
+            msgid: msg.id,
+            guild: interaction.guild?.id,
+            channel: interaction.channel?.id,
+            read: 0,
+            userread: new Array<string>(),
+            maker: interaction.user.id,
+            makername: `${interaction.user.username}#${interaction.user.discriminator}`,
+          });
+        } else if (confirmation.customId === `cdanunce.${uuid}_cancel`) {
           await msg.delete();
           await confirmation.reply({
             content: 'Announcement cancelled',

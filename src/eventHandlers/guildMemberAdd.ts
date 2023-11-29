@@ -7,13 +7,18 @@ import {
 } from 'discord.js';
 import { inspect } from 'util';
 import { GuildModel } from '../Database/GuildSchema.js';
-import logger from '../utils/logger.js';
 import { color, url } from '../config/EmbedConfig.js';
 import { Values, parseContent } from '../utils/parseContent.js';
+import CustomClient from '../core/client.js';
 
-export default async function guildMemberAdd(member: GuildMember) {
+export default async function guildMemberAdd(
+  client: CustomClient,
+  member: GuildMember,
+) {
   try {
     const guildData = await GuildModel.findOne({ id: member.guild.id });
+
+    client.getLogger().info(inspect(guildData, true, 10, true));
 
     // 채널 구하기
     let sendchannel: TextChannel | null = null;
@@ -47,7 +52,7 @@ export default async function guildMemberAdd(member: GuildMember) {
     // find the channel to send
     // 1. 길드 데이터에 등록된 채널
     if (guildData.inoutmsgchannel) {
-      logger.info('guilddata');
+      client.getLogger().info('guilddata');
       const channel = await member.guild.channels.fetch(
         guildData.inoutmsgchannel,
       );
@@ -78,7 +83,7 @@ export default async function guildMemberAdd(member: GuildMember) {
       }
       // 3. 맨 먼저 채널
       else {
-        logger.info('first channel');
+        client.getLogger().info('first channel');
         member.guild.channels.fetch().then(channels => {
           if (channels.size !== 0) {
             let isended = false;
@@ -97,6 +102,6 @@ export default async function guildMemberAdd(member: GuildMember) {
       if (sendchannel) sendchannel.send({ embeds: [embed] });
     }
   } catch (e) {
-    logger.error(e);
+    client.getLogger().error(e);
   }
 }
