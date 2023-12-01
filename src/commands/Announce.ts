@@ -199,7 +199,7 @@ const command: ICommand = {
                 .setStyle(ButtonStyle.Success),
             );
 
-          await (channel as TextChannel).send({
+          const finalembed = await (channel as TextChannel).send({
             embeds: [embed],
             components: [checkbutton],
           });
@@ -209,11 +209,13 @@ const command: ICommand = {
             ephemeral: true,
           });
 
+          client.getLogger().info(uuid);
+
           await AnnounceModel.create({
             id: uuid,
             title,
             content: ctnt || null,
-            msgid: msg.id,
+            msgid: finalembed.id,
             guild: interaction.guild?.id,
             channel: interaction.channel?.id,
             read: 0,

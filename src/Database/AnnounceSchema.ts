@@ -10,7 +10,7 @@ export class AnnounceClass {
   title!: string;
 
   @prop()
-  content?: string;
+  content!: string;
 
   @prop({ required: true })
   msgid!: string;

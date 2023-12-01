@@ -11,7 +11,7 @@ async function interactionCreate(
     InterAcCommand(client, interaction);
   }
   if (interaction.isButton()) {
-    InterAcButton(interaction);
+    InterAcButton(client, interaction);
   }
 }
 

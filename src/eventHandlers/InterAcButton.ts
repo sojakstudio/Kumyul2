@@ -6,12 +6,16 @@ import {
   ButtonStyle,
   PermissionsBitField,
 } from 'discord.js';
+import { inspect } from 'util';
 import { url } from '../config/EmbedConfig.js';
+import CustomClient from '../core/client.js';
 import { AnnounceModel } from '../Database/AnnounceSchema.js';
 import { VoteModel } from '../Database/VoteSchema.js';
-import logger from '../utils/logger.js';
 
-async function InterAcButton(interaction: ButtonInteraction) {
+async function InterAcButton(
+  client: CustomClient,
+  interaction: ButtonInteraction,
+) {
   if (
     !interaction.customId.startsWith('cdvo.') &&
     !interaction.customId.startsWith('cdanunce.')
@@ -20,60 +24,118 @@ async function InterAcButton(interaction: ButtonInteraction) {
 
   const prefix = interaction.customId.split('.')[0];
 
-  if (prefix === 'cdvo.') {
-    const [id, type] = interaction.customId.substring(5).split('_');
+  client.getLogger().info(prefix);
 
-    // db 조회
-    const res = await VoteModel.findOne({ id });
+  try {
+    if (prefix === 'cdvo') {
+      const [id, type] = interaction.customId.substring(5).split('_');
 
-    if (!res) return;
+      // db 조회
+      const res = await VoteModel.findOne({ id });
 
-    // value
-    let embed: EmbedBuilder;
+      if (!res) return;
 
-    const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`cdvo.${id}_agree`)
-        .setLabel('👍')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId(`cdvo.${id}_disagree`)
-        .setLabel('👎')
-        .setStyle(ButtonStyle.Danger),
-      new ButtonBuilder()
-        .setCustomId(`cdvo.${id}_lock`)
-        .setLabel('🔒')
-        .setStyle(ButtonStyle.Secondary),
-    );
+      // value
+      let embed: EmbedBuilder;
 
-    // 락 버튼
-    if (type === 'lock') {
-      // 유저 체크
-      if (
-        res.maker !== interaction.user.id &&
-        !(interaction.member?.permissions as PermissionsBitField)
-          .toArray()
-          .includes('Administrator') &&
-        !(interaction.member?.permissions as PermissionsBitField)
-          .toArray()
-          .includes('ManageGuild')
-      ) {
-        interaction.reply({
-          content: '투표의 생성자 혹은 서버 관리자만 투표를 종료할 수 있어요!',
-          ephemeral: true,
+      const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`cdvo.${id}_agree`)
+          .setLabel('👍')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(`cdvo.${id}_disagree`)
+          .setLabel('👎')
+          .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+          .setCustomId(`cdvo.${id}_lock`)
+          .setLabel('🔒')
+          .setStyle(ButtonStyle.Secondary),
+      );
+
+      // 락 버튼
+      if (type === 'lock') {
+        // 유저 체크
+        if (
+          res.maker !== interaction.user.id &&
+          !(interaction.member?.permissions as PermissionsBitField)
+            .toArray()
+            .includes('Administrator') &&
+          !(interaction.member?.permissions as PermissionsBitField)
+            .toArray()
+            .includes('ManageGuild')
+        ) {
+          interaction.reply({
+            content:
+              '투표의 생성자 혹은 서버 관리자만 투표를 종료할 수 있어요!',
+            ephemeral: true,
+          });
+
+          return;
+        }
+
+        // 투표 데이터베이스에서 삭제
+        await VoteModel.deleteOne({ id });
+
+        // 임베드 생성
+        embed = new EmbedBuilder()
+          .setColor('#5f7b9b')
+          .setAuthor({ name: '시덱이', iconURL: url })
+          .setTitle(`[종료됨] ${res.topic}`)
+          .setDescription(res.description || '새 투표에요!')
+          .addFields(
+            { name: '찬성', value: `${res.agree}`, inline: true },
+            { name: '반대', value: `${res.disagree}`, inline: true },
+          )
+          .setFooter({
+            text: `${res.makername}님이 시작했어요!`,
+          });
+
+        // 메세지 쌔벼오기
+        await interaction.channel?.messages.fetch(res.msgid).then(async msg => {
+          // 메세지 믿장빼기
+          await msg.edit({ embeds: [embed], components: [] });
+
+          // 대답하기
+          await interaction.reply({
+            content: '성공적으로 투표를 반영했어요!',
+            ephemeral: true,
+          });
         });
 
         return;
       }
 
-      // 투표 데이터베이스에서 삭제
-      await VoteModel.deleteOne({ id });
+      // #region 이미 투표했는지 확인
+      if (res.uservoted.has(interaction.user.id)) {
+        const voted = res.uservoted.get(interaction.user.id);
 
-      // 임베드 생성
+        // agree 눌렀을 경우
+        if (voted) res.agree -= 1;
+        // disagree 경우
+        if (!voted) res.disagree -= 1;
+      }
+
+      // #endregion
+
+      // #region 값 변화시키기
+      if (type === 'agree') {
+        res.agree += 1;
+
+        res.uservoted.set(interaction.user.id, true);
+      }
+      if (type === 'disagree') {
+        res.disagree += 1;
+
+        res.uservoted.set(interaction.user.id, false);
+      }
+
+      const color = res.agree >= res.disagree ? '#4caf50' : '#ed2939';
+
       embed = new EmbedBuilder()
-        .setColor('#5f7b9b')
+        .setColor(color)
         .setAuthor({ name: '시덱이', iconURL: url })
-        .setTitle(`[종료됨] ${res.topic}`)
+        .setTitle(res.topic)
         .setDescription(res.description || '새 투표에요!')
         .addFields(
           { name: '찬성', value: `${res.agree}`, inline: true },
@@ -83,97 +145,76 @@ async function InterAcButton(interaction: ButtonInteraction) {
           text: `${res.makername}님이 시작했어요!`,
         });
 
-      // 메세지 쌔벼오기
-      await interaction.channel?.messages.fetch(res.msgid).then(async msg => {
-        // 메세지 믿장빼기
-        await msg.edit({ embeds: [embed], components: [] });
+      // #endregion
 
-        // 대답하기
+      const msg = await interaction.channel?.messages.fetch(res.msgid);
+
+      if (msg) {
+        const editedmsg = await msg.edit({
+          embeds: [embed],
+          components: [buttons],
+        });
+
+        res.msgid = editedmsg.id;
+
+        await res.save();
+
         await interaction.reply({
           content: '성공적으로 투표를 반영했어요!',
           ephemeral: true,
         });
-      });
+      }
+    } else if (prefix === 'cdanunce') {
+      const [id, type] = interaction.customId.split('.')[1].split('_');
 
-      return;
+      // db 조회
+      const res = await AnnounceModel.findOne({ id });
+
+      if (!res) return;
+
+      // check if already marked as read
+      if (res.userread.includes(interaction.user.id)) {
+        interaction.reply({
+          content: 'Already marked as read!',
+          ephemeral: true,
+        });
+      } else {
+        res.read++;
+        res.userread.push(interaction.user.id);
+      }
+
+      // fetch message and edit / push db
+      const msg = await interaction.channel?.messages.fetch(res.msgid);
+
+      const embed = new EmbedBuilder()
+        .setColor('#ad1456')
+        .setAuthor({ name: 'CdecBot', iconURL: url })
+        .setTitle(res.title)
+        .setDescription(res.content)
+        .setFooter({
+          text: `${res.read} User Read | Press 👍 To Mark as Read`,
+        });
+
+      const checkbutton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`cdanunce.${id}_read`)
+          .setLabel('👍')
+          .setStyle(ButtonStyle.Success),
+      );
+
+      if (msg) {
+        await msg.edit({ embeds: [embed], components: [checkbutton] });
+
+        await res.save();
+
+        await interaction.reply({
+          content: 'Announcement Marked as Read!',
+          ephemeral: true,
+        });
+      }
     }
-
-    // #region 이미 투표했는지 확인
-    if (res.uservoted.has(interaction.user.id)) {
-      const voted = res.uservoted.get(interaction.user.id);
-
-      // agree 눌렀을 경우
-      if (voted) res.agree -= 1;
-      // disagree 경우
-      if (!voted) res.disagree -= 1;
-    }
-
-    // #endregion
-
-    // #region 값 변화시키기
-    if (type === 'agree') {
-      res.agree += 1;
-
-      res.uservoted.set(interaction.user.id, true);
-    }
-    if (type === 'disagree') {
-      res.disagree += 1;
-
-      res.uservoted.set(interaction.user.id, false);
-    }
-
-    const color = res.agree >= res.disagree ? '#4caf50' : '#ed2939';
-
-    embed = new EmbedBuilder()
-      .setColor(color)
-      .setAuthor({ name: '시덱이', iconURL: url })
-      .setTitle(res.topic)
-      .setDescription(res.description || '새 투표에요!')
-      .addFields(
-        { name: '찬성', value: `${res.agree}`, inline: true },
-        { name: '반대', value: `${res.disagree}`, inline: true },
-      )
-      .setFooter({
-        text: `${res.makername}님이 시작했어요!`,
-      });
-
-    // #endregion
-
-    await interaction.channel?.messages.fetch(res.msgid).then(async msg => {
-      const editedmsg = await msg.edit({
-        embeds: [embed],
-        components: [buttons],
-      });
-
-      res.msgid = editedmsg.id;
-
-      await res.save();
-
-      await interaction.reply({
-        content: '성공적으로 투표를 반영했어요!',
-        ephemeral: true,
-      });
-    });
-  } else if (prefix === 'cdanunce.') {
-    const [id, type] = interaction.customId.substring(5).split('_');
-
-    // db 조회
-    const res = await AnnounceModel.findOne({ id });
-
-    if (!res) return;
-
-    // check if already marked as read
-    if (res.userread.includes(interaction.user.id)) {
-      interaction.reply({
-        content: 'Already marked as read!',
-        ephemeral: true,
-      });
-    } else {
-      res.userread.push(interaction.user.id);
-      res.read++;
-    }
-
-    // fetch message and edit / push db
+  } catch (e) {
+    client.getLogger().error(e);
   }
 }
 
